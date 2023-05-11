@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://cdn.jsdelivr.net/npm/phaser@3"></script>
+        <script src="path/to/rex-isometric-plugin.js"></script> <!-- include the isometric plugin here -->
+    </head>    
+  <body>
+    <script>
+      var config = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 600,
+        physics: {
+          default: "arcade",
+        },
+        scene: {
+          preload: preload,
+          create: create,
+          update: update,
+        },
+        plugins: {
+          scene: [
+            {
+              key: "rexIsometricPlugin",
+              plugin: window.RexPlugins.Isometric,
+              mapping: "isometric",
+              start: true,
+            },
+          ],
+        },
+      };
+
+      var game = new Phaser.Game(config);
+      var player;
+      var cursors;
+
+      function preload() {
+        this.load.spritesheet("character", "animations/PrototypeHero.png", {
+          frameWidth: 100,
+          frameHeight: 80,
+        });
+      }
+
+      function create() {
+        // Create the isometric projection object
+        const iso = this.plugins.get("rexIsometricPlugin").add(this, {
+          // Provide the isometric projection angle and scale
+          staggerAxis: true,
+          angle: 30,
+          scale: 0.5,
+        });
+
+        // Create the player sprite with isometric projection
+        player = iso.add.sprite(0, 0, "character", 0);
+
+        // Set the pivot point of the sprite to its center
+        player.setOrigin(0.5);
+
+        // Set the initial position of the player sprite
+        iso.placeAt(player, 100, 300, 0);
+
+        // Create the animations
+        this.anims.create({
+          key: "run",
+          frames: this.anims.generateFrameNumbers("character", {
+            start: 9,
+            end: 16,
+          }),
+          frameRate: 10,
+          repeat: -1,
+        });
+        this.anims.create({
+          key: "idle",
+          frames: this.anims.generateFrameNumbers("character", {
+            start: 0,
+            end: 5,
+          }),
+          frameRate: 10,
+          repeat: -1,
+        });
+
+        // Create the cursors object
+        cursors = this.input.keyboard.createCursorKeys();
+      }
+
+      function update() {
+        const speed = 160; // Movement speed
+        const deceleration = 0.95; // Deceleration factor
+
+        // Handle movement
+        let isMoving = false;
+        let animKey = "idle";
+        let xDir = 0;
+        let yDir = 0;
+
+        if (cursors.left.isDown) {
+          xDir = -1;
+          isMoving = true;
+          animKey = "run";
+          player.flipX = true; // Flip the sprite to the left
+        } else if (cursors.right.isDown) {
+          xDir = 1;
+          isMoving = true;
+          animKey = "run";
+          player.flipX = false; // Use the original sprite orientation for right
+        }
+
+        if (cursors.up.isDown) {
+          yDir = -1;
+          isMoving = true;
+          animKey = "run";
+        } else if (cursors.down.isDown) {
+          yDir = 1;
+          isMoving = true;
+          animKey = "run";
+        }
+
+        // Move the player sprite
+        player.x += xDir * speed;
+        player.y += yDir * speed;
+
+       // If the player is not moving, play the idle animation
+        if (!isMoving) {
+            player.anims.play("idle", true);
+        } else {
+            player.anims.play(animKey, true);
+        }
+
+                // Update the isometric projection position and depth
+    const iso = this.plugins.get("rexIsometric");
+    iso.project(player, player.x, player.y, player.depth);
+
+    // Move the camera to follow the player
+    this.cameras.main.centerOn(player.isoX, player.isoY);
+
+    // Set the depth sorting of the sprites
+    iso.depthSort();
+  }
+</script>
+</body>
+</html>
