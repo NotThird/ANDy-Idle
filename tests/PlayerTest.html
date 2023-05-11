@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <script src="https://cdn.jsdelivr.net/npm/phaser@3"></script>
-        <script src="path/to/rex-isometric-plugin.js"></script> <!-- include the isometric plugin here -->
-    </head>    
+  <head>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3"></script>
+  </head>
   <body>
-    <script>
+    <script type="module">
       var config = {
         type: Phaser.AUTO,
         width: 800,
@@ -18,21 +17,14 @@
           create: create,
           update: update,
         },
-        plugins: {
-          scene: [
-            {
-              key: "rexIsometricPlugin",
-              plugin: window.RexPlugins.Isometric,
-              mapping: "isometric",
-              start: true,
-            },
-          ],
-        },
       };
 
       var game = new Phaser.Game(config);
       var player;
       var cursors;
+      var keys;
+      var isAttacking = false;
+      var isRunning = false
 
       function preload() {
         this.load.spritesheet("character", "animations/PrototypeHero.png", {
@@ -42,30 +34,20 @@
       }
 
       function create() {
-        // Create the isometric projection object
-        const iso = this.plugins.get("rexIsometricPlugin").add(this, {
-          // Provide the isometric projection angle and scale
-          staggerAxis: true,
-          angle: 30,
-          scale: 0.5,
-        });
-
-        // Create the player sprite with isometric projection
-        player = iso.add.sprite(0, 0, "character", 0);
-
-        // Set the pivot point of the sprite to its center
+        // Create the player sprite
+        player = this.physics.add.sprite(100, 300, "character", 0);
         player.setOrigin(0.5);
-
-        // Set the initial position of the player sprite
-        iso.placeAt(player, 100, 300, 0);
 
         // Create the animations
         this.anims.create({
+          key: "walk",
+          frames: this.anims.generateFrameNumbers("character", { start: 112, end: 117  }),
+          frameRate: 10,
+          repeat: -1,
+        });
+        this.anims.create({
           key: "run",
-          frames: this.anims.generateFrameNumbers("character", {
-            start: 9,
-            end: 16,
-          }),
+          frames: this.anims.generateFrameNumbers("character", { start: 9, end: 16 }),
           frameRate: 10,
           repeat: -1,
         });
@@ -78,64 +60,84 @@
           frameRate: 10,
           repeat: -1,
         });
+        this.anims.create({
+          key: "attack",
+          frames: this.anims.generateFrameNumbers("character", {
+            start: 25,
+            end: 36,
+          }),
+          frameRate: 10,
+        });
 
         // Create the cursors object
         cursors = this.input.keyboard.createCursorKeys();
+        keys = this.input.keyboard.addKeys("W,A,S,D,Q,SHIFT"); // Capturing specific keys
       }
 
       function update() {
-        const speed = 160; // Movement speed
-        const deceleration = 0.95; // Deceleration factor
+        // Handle running state
+        if (Phaser.Input.Keyboard.JustDown(keys.SHIFT)) {
+          isRunning = !isRunning; // Toggle running state
+        }
 
-        // Handle movement
         let isMoving = false;
-        let animKey = "idle";
+        let animKey = isRunning ? "run" : "walk";
+        let speed = isRunning ? 200 : 100; // Different speed for running and walking
         let xDir = 0;
         let yDir = 0;
 
-        if (cursors.left.isDown) {
+        if (cursors.left.isDown || keys.A.isDown) {
           xDir = -1;
           isMoving = true;
-          animKey = "run";
-          player.flipX = true; // Flip the sprite to the left
-        } else if (cursors.right.isDown) {
-          xDir = 1;
+          player.flipX = true;
+        } else if (cursors.right.isDown || keys.D.isDown) {
+          xDir = 1
           isMoving = true;
-          animKey = "run";
-          player.flipX = false; // Use the original sprite orientation for right
+          player.flipX = false;
         }
 
-        if (cursors.up.isDown) {
+        if (cursors.up.isDown || keys.W.isDown) {
           yDir = -1;
           isMoving = true;
-          animKey = "run";
-        } else if (cursors.down.isDown) {
+        } else if (cursors.down.isDown || keys.S.isDown) {
           yDir = 1;
+          isMoving = true;
+        }
+
+        // If attack key is pressed and the player is not currently attacking, play the attack animation and ignore other inputs
+        if (keys.Q.isDown && !isAttacking) {
+          isAttacking = true;
+          player.anims.play("attack", true);
+          player.once("animationcomplete", () => {
+            player.anims.play("idle");
+            isAttacking = false;
+          });
+          return;
+        }
+        // Move the player sprite
+        player.setVelocityX(xDir * speed);
+        player.setVelocityY(yDir * speed);
+
+        // If the player is not moving, play the idle animation
+        if (!isMoving && !isAttacking) {
+          player.anims.play("idle", true);
+        } else if (isMoving && !isAttacking) {
+          // If the player isn't currently attacking, allow movement
+          player.anims.play(animKey, true);
+        }
+        // Decrease the vertical movement speed
+        const verticalSpeedMultiplier = 0.8;
+
+        if (cursors.up.isDown || keys.W.isDown) {
+          yDir = -1 * verticalSpeedMultiplier;
+          isMoving = true;
+          animKey = "run";
+        } else if (cursors.down.isDown || keys.S.isDown) {
+          yDir = 1 * verticalSpeedMultiplier;
           isMoving = true;
           animKey = "run";
         }
-
-        // Move the player sprite
-        player.x += xDir * speed;
-        player.y += yDir * speed;
-
-       // If the player is not moving, play the idle animation
-        if (!isMoving) {
-            player.anims.play("idle", true);
-        } else {
-            player.anims.play(animKey, true);
-        }
-
-                // Update the isometric projection position and depth
-    const iso = this.plugins.get("rexIsometric");
-    iso.project(player, player.x, player.y, player.depth);
-
-    // Move the camera to follow the player
-    this.cameras.main.centerOn(player.isoX, player.isoY);
-
-    // Set the depth sorting of the sprites
-    iso.depthSort();
-  }
-</script>
-</body>
+      }
+    </script>
+  </body>
 </html>
