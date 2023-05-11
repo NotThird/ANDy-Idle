@@ -7,6 +7,7 @@ import { createCamera, updateCamera } from "./systems/Camera.js";
 import { Map } from "./game/Map.js";
 import { TreeObjects } from "./entities/treeObjects.js";
 import Chunk from "./systems/Chunk.js";
+import EnemySpawner from "./entities/EnemySpawner.js";
 
 var config = {
   type: Phaser.AUTO,
@@ -30,6 +31,7 @@ var isAttacking = false;
 var isRunning = false;
 var camera;
 var treeObjects;
+var enemySpawner;
 
 function preload() {
   this.load.spritesheet("character", "../assets/animations/PrototypeHero.png", {
@@ -43,6 +45,18 @@ function preload() {
   this.load.spritesheet("tilesheet", "../assets/images/map/forest_.png", {
     frameWidth: 32,
     frameHeight: 32,
+  });
+  this.load.spritesheet("enemyMove", "../assets/images/enemies/Bat/noBKG_BatFlight_strip.png", {
+    frameWidth: 64,
+    frameHeight: 64,
+  });
+  this.load.spritesheet("enemyAttack", "../assets/images/enemies/Bat/noBKG_BatAttack_strip.png", {
+    frameWidth: 64,
+    frameHeight: 64,
+  });
+  this.load.spritesheet("enemyDie", "../assets/images/enemies/Bat/noBKG_BatDeath_strip.png", {
+    frameWidth: 64,
+    frameHeight: 64,
   });
 }
 
@@ -77,6 +91,8 @@ function create() {
   treeObjects = new TreeObjects(this);
   treeObjects.spawnDistance = spawnDistance;
   treeObjects.create();
+ // Create the enemy spawner and pass the required parameters
+ enemySpawner = new EnemySpawner(this, player);
 }
 
 function update() {
@@ -92,6 +108,7 @@ function update() {
   if (treeObjects) {
     treeObjects.update(player);
   }
+  enemySpawner.update(); // Call the update method of enemy spawner
 }
 
 function updatePlayer() {
@@ -107,4 +124,5 @@ function updatePlayer() {
     isAttacking,
     isRunning
   ); // Use the returned isAttacking flag
+  game.scene.start(); // Start the game scene
 }

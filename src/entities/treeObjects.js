@@ -30,12 +30,13 @@ export class TreeObjects {
     }
   
     spawnTree(player) {
-      const x = player.x + Phaser.Math.Between(800, 1000); // random offset to x-coordinate
-      const y = 400; // y position of the tree
-      const frameIndex = Phaser.Math.RND.pick(this.treeFrames);
-      const tree = this.scene.physics.add.sprite(x, y + this.baseOffsetY, this.treeSpritesheet, frameIndex);
-      const collider = this.scene.add.rectangle(x, y + this.colliderOffsetY, 40, 20, 0xff0000, 0.5);
-      this.objects.push(tree);
-    }
+        const x = player.x + Phaser.Math.Between(800, 1000); // random offset to x-coordinate
+        const y = 400; // y position of the tree
+        const frameIndex = Phaser.Math.RND.pick(this.treeFrames);
+        const tree = this.scene.add.image(x, y + this.baseOffsetY, this.treeSpritesheet, frameIndex);
+        tree.setScale(2); // Increase the size of the tree
+        this.objects.push(tree);
+      }
+      
   }
   

@@ -23,7 +23,28 @@ export function createAnimations(scene) {
       frames: scene.anims.generateFrameNumbers("character", { start: 25, end: 36 }),
       frameRate: 10,
     });
+    scene.anims.create({
+      key: "enemyMoving",
+      frames: scene.anims.generateFrameNumbers("enemyMove", { start: 0, end: 3 }),
+      frameRate: 10,
+      repeat: -1,
+    });
+    scene.anims.create({
+      key: "enemyAttacking",
+      frames: scene.anims.generateFrameNumbers("enemyAttack", {
+        start: 0,
+        end: 3,
+      }),
+      frameRate: 10,
+      repeat: -1,
+    });
+    scene.anims.create({
+      key: "enemyDying",
+      frames: scene.anims.generateFrameNumbers("enemyDie", { start: 0, end: 3 }),
+      frameRate: 10,
+    });
   }
+  
   
   export function updateAnimations(player, keys, isMoving, isAttacking, isRunning) {
     let animKey = isRunning ? "run" : "walk";
