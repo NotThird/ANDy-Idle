@@ -1,33 +1,24 @@
 import BaseEntity from "./baseEntity.js";
+import Inventory from "../systems/Inventory.js";
+import Leveling from "../systems/Leveling.js";
 
 export default class Player extends BaseEntity {
   constructor(scene, x, y, texture, frame, name, level, gearScore) {
     super(scene, x, y, texture, frame, name, level, gearScore);
-    this.exp = 0;
-    this.expToLevelUp = this.level * 100;
+    this.inventory = new Inventory();
+    this.leveling = new Leveling();
   }
 
   // Player specific method
   gainExp(amount) {
-    this.exp += amount;
-    if (this.exp >= this.expToLevelUp) {
-      this.levelUp();
-    }
-  }
-
-  levelUp() {
-    this.exp -= this.expToLevelUp;
-    this.level += 1;  // use setter for level
-    this.expToLevelUp = this.level * 100;
-    this.updateStats();  // Recalculate stats based on new level
-    console.log(`Level Up! New level: ${this.level}`);  // use getter for level
+    this.leveling.gainExp(amount);
   }
 
   takeDamage(damage) {
     super.takeDamage(damage);
     if (this.health <= 0) {
       this.health = 0;
-      this.die();  // define die() method
+      this.die();
     }
   }
 

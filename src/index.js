@@ -13,6 +13,8 @@ import PlayerManager from "./entities/playerManager.js";
 import HealthBar from './entities/HealthBar.js';
 import Player from './entities/Player.js';
 import Enemy from './entities/Enemy.js';
+import Inventory from './systems/Inventory.js';
+import Leveling from './systems/Leveling.js';
 
 var config = {
   type: Phaser.AUTO,
@@ -122,6 +124,10 @@ function create() {
   treeObjects.spawnDistance = spawnDistance;
   treeObjects.create();
 
+    // Create instances of Inventory and Leveling
+    player.inventory = new Inventory();
+    player.leveling = new Leveling();
+
   // Setup colliders
   setupColliders(this, player, enemySpawner, treeObjects);
 
@@ -166,6 +172,10 @@ function update(scene) {
     const enemy = enemySpawner.enemies.getChildren()[index];
     updateHealthBar(enemy, healthBar);
   });
+  if (player.hasGainedExperience) {
+    player.leveling.gainExp(player.experienceGained);
+    player.hasGainedExperience = false; // Reset this flag after gaining experience
+  }
 }
 
 
