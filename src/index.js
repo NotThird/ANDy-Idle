@@ -12,7 +12,7 @@ import { setupColliders } from "./systems/colliders.js";
 import PlayerManager from "./entities/playerManager.js";
 import HealthBar from './entities/HealthBar.js';
 import Player from './entities/Player.js';
-
+import Enemy from './entities/Enemy.js';
 
 var config = {
   type: Phaser.AUTO,
@@ -37,10 +37,9 @@ var camera;
 var treeObjects;
 var enemySpawner;
 var playerManager;
-var player = new Player("John", 1, 100, 50, 80, 70, 3, 4, 5, 6, 10, 20, 30, 100);
+let player;
 let playerHealthBar;
 let enemyHealthBars;
-
 
 function preload() {
   this.load.spritesheet("character", "../assets/animations/PrototypeHero.png", {
@@ -101,12 +100,14 @@ function create() {
     this.chunks.push(chunk);
   }
 
-  player = this.physics.add.sprite(100, 300, "character", 0);
+  // Create player instance
+  player = new Player(this, 100, 300, "character", 0, "Player1", 1, 0);
+  this.physics.add.existing(player);
   player.setOrigin(0.5);
   player.hitbox = this.physics.add.sprite(player.x, player.y);
   player.hitbox.body.setSize(100, 80);
   player.hitbox.visible = false;
-  // Create the enemy spawner and pass the required parameters
+
   enemySpawner = new EnemySpawner(this, player);
 
   playerManager = new PlayerManager(player, this, enemySpawner.enemies);
@@ -127,30 +128,12 @@ function create() {
   // Create a graphics object for drawing health bars
   const healthBarGraphics = this.add.graphics();
 
-  // Create a health bar for the player
-  playerHealthBar = new HealthBar(
-    this,
-    player.x - 50,
-    player.y - 50,
-    100,
-    10,
-    player.health, // Use player.health instead of player.getHealth()
-    0x00ff00,
-    0x000000
-  );
+ // Create a health bar for the player
+  playerHealthBar = new HealthBar(this, player.x - 50, player.y - 50, 100, 10, player.health, 0x00ff00, 0x000000);
 
   // Create health bars for enemies
   enemyHealthBars = enemySpawner.enemies.getChildren().map((enemy) => {
-    const healthBar = new HealthBar(
-      this,
-      enemy.x - 50,
-      enemy.y - 50,
-      100,
-      10,
-      enemy.health, // Use enemy.health instead of enemy.getHealth()
-      0xff0000,
-      0x000000
-    );
+    const healthBar = new HealthBar(this, enemy.x - 50, enemy.y - 50, 100, 10, enemy.health, 0xff0000, 0x000000);
     enemy.on("healthchange", (health) => {
       healthBar.setHealth(health);
     });
@@ -159,7 +142,7 @@ function create() {
 }
 
 
-function update() {
+function update(scene) {
   console.log(player.hitbox.width, player.hitbox.height); // Log the size of the hitbox
   enemySpawner.update(); // Call the update method of enemy spawner
   playerManager.update();
@@ -186,6 +169,7 @@ function update() {
 }
 
 
+
 function updatePlayer() {
   if (Phaser.Input.Keyboard.JustDown(keys.SHIFT)) {
     isRunning = !isRunning; // Toggle running state
@@ -201,6 +185,7 @@ function updatePlayer() {
   ); // Use the returned isAttacking flag
 }
 
+
 // Function to update the health bar position and size
 function updateHealthBar(entity, healthBar) {
   // Set the position of the health bar above the entity
@@ -208,6 +193,6 @@ function updateHealthBar(entity, healthBar) {
   healthBar.y = entity.y - entity.displayHeight / 2 - 10;
 
   // Set the width of the health bar based on the entity's health
-  const healthRatio = entity.health / entity.maxHealth; // Use entity.health instead of entity.getHealth()
+  const healthRatio = entity.health / entity.maxHealth;
   healthBar.setSize(entity.displayWidth * healthRatio, healthBar.height);
 }
