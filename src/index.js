@@ -8,6 +8,7 @@ import { Map } from "./game/Map.js";
 import { TreeObjects } from "./entities/treeObjects.js";
 import Chunk from "./systems/Chunk.js";
 import EnemySpawner from "./entities/EnemySpawner.js";
+import { setupColliders } from './systems/colliders.js';
 
 var config = {
   type: Phaser.AUTO,
@@ -91,10 +92,11 @@ function create() {
   treeObjects = new TreeObjects(this);
   treeObjects.spawnDistance = spawnDistance;
   treeObjects.create();
- // Create the enemy spawner and pass the required parameters
- enemySpawner = new EnemySpawner(this, player);
+  // Create the enemy spawner and pass the required parameters
+  enemySpawner = new EnemySpawner(this, player);
+  // Setup colliders
+  setupColliders(this, player, enemySpawner, treeObjects);
 }
-
 function update() {
   player.hitbox.x = player.x;
   player.hitbox.y = player.y;
@@ -124,5 +126,4 @@ function updatePlayer() {
     isAttacking,
     isRunning
   ); // Use the returned isAttacking flag
-  game.scene.start(); // Start the game scene
 }
