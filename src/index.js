@@ -8,7 +8,11 @@ import { Map } from "./game/Map.js";
 import { TreeObjects } from "./entities/treeObjects.js";
 import Chunk from "./systems/Chunk.js";
 import EnemySpawner from "./entities/EnemySpawner.js";
-import { setupColliders } from './systems/colliders.js';
+import { setupColliders } from "./systems/colliders.js";
+import PlayerManager from "./entities/playerManager.js";
+import HealthBar from './entities/HealthBar.js';
+import Player from './entities/Player.js';
+
 
 var config = {
   type: Phaser.AUTO,
@@ -25,7 +29,6 @@ var config = {
 };
 
 var game = new Phaser.Game(config);
-var player;
 var cursors;
 var keys;
 var isAttacking = false;
@@ -33,32 +36,53 @@ var isRunning = false;
 var camera;
 var treeObjects;
 var enemySpawner;
+var playerManager;
+var player = new Player("John", 1, 100, 50, 80, 70, 3, 4, 5, 6, 10, 20, 30, 100);
+let playerHealthBar;
+let enemyHealthBars;
+
 
 function preload() {
   this.load.spritesheet("character", "../assets/animations/PrototypeHero.png", {
     frameWidth: 100,
     frameHeight: 80,
   });
-  this.load.spritesheet("trees", "../assets/images/map/forest_ [resources].png", {
-    frameWidth: 18,
-    frameHeight: 48,
-  });
+  this.load.spritesheet(
+    "trees",
+    "../assets/images/map/forest_ [resources].png",
+    {
+      frameWidth: 18,
+      frameHeight: 48,
+    }
+  );
   this.load.spritesheet("tilesheet", "../assets/images/map/forest_.png", {
     frameWidth: 32,
     frameHeight: 32,
   });
-  this.load.spritesheet("enemyMove", "../assets/images/enemies/Bat/noBKG_BatFlight_strip.png", {
-    frameWidth: 64,
-    frameHeight: 64,
-  });
-  this.load.spritesheet("enemyAttack", "../assets/images/enemies/Bat/noBKG_BatAttack_strip.png", {
-    frameWidth: 64,
-    frameHeight: 64,
-  });
-  this.load.spritesheet("enemyDie", "../assets/images/enemies/Bat/noBKG_BatDeath_strip.png", {
-    frameWidth: 64,
-    frameHeight: 64,
-  });
+  this.load.spritesheet(
+    "enemyMove",
+    "../assets/images/enemies/Bat/noBKG_BatFlight_strip.png",
+    {
+      frameWidth: 64,
+      frameHeight: 64,
+    }
+  );
+  this.load.spritesheet(
+    "enemyAttack",
+    "../assets/images/enemies/Bat/noBKG_BatAttack_strip.png",
+    {
+      frameWidth: 64,
+      frameHeight: 64,
+    }
+  );
+  this.load.spritesheet(
+    "enemyDie",
+    "../assets/images/enemies/Bat/noBKG_BatDeath_strip.png",
+    {
+      frameWidth: 64,
+      frameHeight: 64,
+    }
+  );
 }
 
 function create() {
@@ -67,21 +91,25 @@ function create() {
 
   for (let i = 0; i < 10; i++) {
     const chunk = new Chunk(
-        this,
-        i * chunkSize,
-        0,
-        chunkSize,
-        chunkSize,
-        ["2", "4", "5"]
-      );
+      this,
+      i * chunkSize,
+      0,
+      chunkSize,
+      chunkSize,
+      ["2", "4", "5"]
+    );
     this.chunks.push(chunk);
   }
 
   player = this.physics.add.sprite(100, 300, "character", 0);
   player.setOrigin(0.5);
   player.hitbox = this.physics.add.sprite(player.x, player.y);
-  player.hitbox.body.setSize(100, 80); 
-  player.hitbox.visible = false; 
+  player.hitbox.body.setSize(100, 80);
+  player.hitbox.visible = false;
+  // Create the enemy spawner and pass the required parameters
+  enemySpawner = new EnemySpawner(this, player);
+
+  playerManager = new PlayerManager(player, this, enemySpawner.enemies);
 
   createAnimations(this);
   keys = createMovement(this);
@@ -92,12 +120,49 @@ function create() {
   treeObjects = new TreeObjects(this);
   treeObjects.spawnDistance = spawnDistance;
   treeObjects.create();
-  // Create the enemy spawner and pass the required parameters
-  enemySpawner = new EnemySpawner(this, player);
+
   // Setup colliders
   setupColliders(this, player, enemySpawner, treeObjects);
+
+  // Create a graphics object for drawing health bars
+  const healthBarGraphics = this.add.graphics();
+
+  // Create a health bar for the player
+  playerHealthBar = new HealthBar(
+    this,
+    player.x - 50,
+    player.y - 50,
+    100,
+    10,
+    player.health, // Use player.health instead of player.getHealth()
+    0x00ff00,
+    0x000000
+  );
+
+  // Create health bars for enemies
+  enemyHealthBars = enemySpawner.enemies.getChildren().map((enemy) => {
+    const healthBar = new HealthBar(
+      this,
+      enemy.x - 50,
+      enemy.y - 50,
+      100,
+      10,
+      enemy.health, // Use enemy.health instead of enemy.getHealth()
+      0xff0000,
+      0x000000
+    );
+    enemy.on("healthchange", (health) => {
+      healthBar.setHealth(health);
+    });
+    return healthBar;
+  });
 }
+
+
 function update() {
+  console.log(player.hitbox.width, player.hitbox.height); // Log the size of the hitbox
+  enemySpawner.update(); // Call the update method of enemy spawner
+  playerManager.update();
   player.hitbox.x = player.x;
   player.hitbox.y = player.y;
 
@@ -105,13 +170,21 @@ function update() {
   updateCamera(this, player);
 
   // Update chunks
-  this.chunks.forEach(chunk => chunk.update(player));
+  this.chunks.forEach((chunk) => chunk.update(player));
 
   if (treeObjects) {
     treeObjects.update(player);
   }
-  enemySpawner.update(); // Call the update method of enemy spawner
+  // Update player's health bar
+  updateHealthBar(player, playerHealthBar);
+
+  // Update enemies' health bars
+  enemyHealthBars.forEach((healthBar, index) => {
+    const enemy = enemySpawner.enemies.getChildren()[index];
+    updateHealthBar(enemy, healthBar);
+  });
 }
+
 
 function updatePlayer() {
   if (Phaser.Input.Keyboard.JustDown(keys.SHIFT)) {
@@ -126,4 +199,15 @@ function updatePlayer() {
     isAttacking,
     isRunning
   ); // Use the returned isAttacking flag
+}
+
+// Function to update the health bar position and size
+function updateHealthBar(entity, healthBar) {
+  // Set the position of the health bar above the entity
+  healthBar.x = entity.x - entity.displayWidth / 2;
+  healthBar.y = entity.y - entity.displayHeight / 2 - 10;
+
+  // Set the width of the health bar based on the entity's health
+  const healthRatio = entity.health / entity.maxHealth; // Use entity.health instead of entity.getHealth()
+  healthBar.setSize(entity.displayWidth * healthRatio, healthBar.height);
 }

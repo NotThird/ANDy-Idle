@@ -17,17 +17,17 @@ export default class EnemySpawner {
   }
 
   spawnEnemy() {
-    
     const x = Phaser.Math.Between(0, this.scene.game.config.width);
     const y = Phaser.Math.Between(0, this.scene.game.config.height);
-
-    let enemy = new Enemy(this.scene, x, y, this.player);  // Here's the change
+  
+    let enemy = new Enemy(this.scene, x, y, this.player);  
     this.enemies.add(enemy);
   }
-
+  
   update() {
     Phaser.Actions.Call(this.enemies.getChildren(), function(enemy) {
       enemy.update();
     }, this);
   }
 }
+
